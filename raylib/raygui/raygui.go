@@ -1,6 +1,7 @@
 package raygui
 
 import (
+	"fmt"
 	"math"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -29,7 +30,7 @@ type TextAlignment int
 const (
 	TextAlignLeft TextAlignment = iota
 	TextAlignCenter
-	TextAlightRight
+	TextAlignRight
 )
 
 // Gui controls
@@ -842,6 +843,144 @@ func ToggleGroup(bounds rl.Rectangle, text string, active int) int {
 
 		bounds.X += bounds.Width + float32(GetStyle(ToggleControl, GroupPadding))
 	}
+
+	return active
+}
+
+// Check Box control, returns true when active
+func CheckBox(bounds rl.Rectangle, text string, checked bool) bool {
+	state := guiState
+
+	textBounds := rl.Rectangle{
+		Width:  float32(GetTextWidth(text)),
+		Height: float32(GetStyle(Default, TextSizeProp)),
+		X:      bounds.X + bounds.Width + float32(GetStyle(CheckBoxControl, TextPaddingProp)),
+		Y:      bounds.Y + bounds.Height/2 - float32(GetStyle(Default, TextSizeProp)/2),
+	}
+	if TextAlignment(GetStyle(CheckBoxControl, TextAlignmentProp)) == TextAlignLeft {
+		textBounds.X = bounds.X - textBounds.Width - float32(GetStyle(CheckBoxControl, TextPaddingProp))
+	}
+
+	// Update control
+	//--------------------------------------------------------------------
+	if state != StateDisabled && !guiLocked {
+		mousePoint := rl.GetMousePosition()
+
+		x := bounds.X
+		if TextAlignment(GetStyle(CheckBoxControl, TextAlignmentProp)) == TextAlignLeft {
+			x = textBounds.X
+		}
+		totalBounds := rl.Rectangle{
+			X:      x,
+			Y:      bounds.Y,
+			Width:  bounds.Width + textBounds.Width + float32(GetStyle(CheckBoxControl, TextPaddingProp)),
+			Height: bounds.Height,
+		}
+
+		// Check checkbox state
+		if rl.CheckCollisionPointRec(mousePoint, totalBounds) {
+			if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+				state = StatePressed
+			} else {
+				state = StateFocused
+			}
+
+			if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				checked = !checked
+			}
+		}
+	}
+	//--------------------------------------------------------------------
+
+	// Draw control
+	//--------------------------------------------------------------------
+	DrawRectangle(bounds, int(GetStyle(CheckBoxControl, BorderWidthProp)), rl.Fade(rl.GetColor(int32(GetStyle(CheckBoxControl, Border+(ControlProperty(state)*3)))), guiAlpha), rl.Blank)
+
+	if checked {
+		check := rl.Rectangle{
+			X:      bounds.X + float32(GetStyle(CheckBoxControl, BorderWidthProp)) + float32(GetStyle(CheckBoxControl, CheckPadding)),
+			Y:      bounds.Y + float32(GetStyle(CheckBoxControl, BorderWidthProp)) + float32(GetStyle(CheckBoxControl, CheckPadding)),
+			Width:  bounds.Width - 2*(float32(GetStyle(CheckBoxControl, BorderWidthProp))+float32(GetStyle(CheckBoxControl, CheckPadding))),
+			Height: bounds.Height - 2*(float32(GetStyle(CheckBoxControl, BorderWidthProp))+float32(GetStyle(CheckBoxControl, CheckPadding))),
+		}
+		DrawRectangle(check, 0, rl.Blank, rl.Fade(rl.GetColor(int32(GetStyle(CheckBoxControl, Text+ControlProperty(state)*3))), guiAlpha))
+	}
+
+	var align TextAlignment
+	if TextAlignment(GetStyle(CheckBoxControl, TextAlignmentProp)) == TextAlignRight {
+		align = TextAlignLeft
+	} else {
+		align = TextAlignRight
+	}
+	DrawText(text, textBounds, align, rl.Fade(rl.GetColor(int32(GetStyle(LabelControl, Text+(ControlProperty(state)*3)))), guiAlpha))
+	//--------------------------------------------------------------------
+
+	return checked
+}
+
+// Combo Box control, returns selected item index
+func ComboBox(bounds rl.Rectangle, text string, active int) int {
+	state := guiState
+
+	bounds.Width -= float32(GetStyle(ComboBoxControl, ComboButtonWidth)) + float32(GetStyle(ComboBoxControl, ComboButtonPadding))
+
+	selector := rl.Rectangle{
+		X:      bounds.X + bounds.Width + float32(GetStyle(ComboBoxControl, ComboButtonPadding)),
+		Y:      bounds.Y,
+		Width:  float32(GetStyle(ComboBoxControl, ComboButtonWidth)),
+		Height: bounds.Height,
+	}
+
+	// Get substrings items from text (items pointers, lengths and count)
+	itemCount := 0
+	items := TextSplit(text, &itemCount, nil)
+
+	if active < 0 {
+		active = 0
+	} else if active > itemCount-1 {
+		active = itemCount - 1
+	}
+
+	// Update control
+	//--------------------------------------------------------------------
+	if state != StateDisabled && !guiLocked && itemCount > 1 {
+		mousePoint := rl.GetMousePosition()
+
+		if rl.CheckCollisionPointRec(mousePoint, bounds) || rl.CheckCollisionPointRec(mousePoint, selector) {
+			if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+				active += 1
+				if active >= itemCount {
+					active = 0
+				}
+			}
+
+			if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+				state = StatePressed
+			} else {
+				state = StateFocused
+			}
+		}
+	}
+	//--------------------------------------------------------------------
+
+	// Draw control
+	//--------------------------------------------------------------------
+	// Draw combo box main
+	DrawRectangle(bounds, int(GetStyle(ComboBoxControl, BorderWidthProp)), rl.Fade(rl.GetColor(int32(GetStyle(ComboBoxControl, Border+(ControlProperty(state)*3)))), guiAlpha), rl.Fade(rl.GetColor(int32(GetStyle(ComboBoxControl, Base+(ControlProperty(state)*3)))), guiAlpha))
+	DrawText(items[active], GetTextBounds(ComboBoxControl, bounds), TextAlignment(GetStyle(ComboBoxControl, TextAlignmentProp)), rl.Fade(rl.GetColor(int32(GetStyle(ComboBoxControl, Text+(ControlProperty(state)*3)))), guiAlpha))
+
+	// Draw selector using a custom button
+	// NOTE: BORDER_WIDTH and TEXT_ALIGNMENT forced values
+	tempBorderWidth := GetStyle(ButtonControl, BorderWidthProp)
+	tempTextAlign := GetStyle(ButtonControl, TextAlignmentProp)
+	SetStyle(ButtonControl, BorderWidthProp, 1)
+	SetStyle(ButtonControl, TextAlignmentProp, uint(TextAlignCenter))
+
+	Button(selector, fmt.Sprintf("%d/%d", active+1, itemCount))
+
+	SetStyle(ButtonControl, TextAlignmentProp, tempTextAlign)
+	SetStyle(ButtonControl, BorderWidthProp, tempBorderWidth)
+	//--------------------------------------------------------------------
 
 	return active
 }
