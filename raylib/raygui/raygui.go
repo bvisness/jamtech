@@ -36,7 +36,7 @@ const (
 type Control int
 
 const (
-	DefaultControl Control = iota
+	Default Control = iota
 	LabelControl
 	ButtonControl
 	ToggleControl
@@ -264,7 +264,7 @@ func SetFont(font rl.Font) {
 		}
 
 		guiFont = font
-		SetStyle(DefaultControl, TextSizeProp, uint(font.BaseSize))
+		SetStyle(Default, TextSizeProp, uint(font.BaseSize))
 	}
 }
 
@@ -364,7 +364,7 @@ func GroupBox(bounds rl.Rectangle, text string) {
 	if state == StateDisabled {
 		borderColorProp = BorderColorDisabledProp
 	}
-	borderColor := rl.GetColor(int32(GetStyle(DefaultControl, borderColorProp)))
+	borderColor := rl.GetColor(int32(GetStyle(Default, borderColorProp)))
 
 	// Draw control
 	//--------------------------------------------------------------------
@@ -386,7 +386,7 @@ func Line(bounds rl.Rectangle, text string) {
 	if state == StateDisabled {
 		colorProp = BorderColorDisabledProp
 	}
-	colorStyle := rl.GetColor(int32(GetStyle(DefaultControl, colorProp)))
+	colorStyle := rl.GetColor(int32(GetStyle(Default, colorProp)))
 
 	color := rl.Fade(colorStyle, guiAlpha)
 
@@ -394,9 +394,9 @@ func Line(bounds rl.Rectangle, text string) {
 	//--------------------------------------------------------------------
 	textBounds := rl.Rectangle{
 		Width:  GetTextWidth(text), // TODO: Consider text icon
-		Height: float32(GetStyle(DefaultControl, TextSizeProp)),
+		Height: float32(GetStyle(Default, TextSizeProp)),
 		X:      bounds.X + LineTextPadding,
-		Y:      bounds.Y - float32(GetStyle(DefaultControl, TextSizeProp))/2,
+		Y:      bounds.Y - float32(GetStyle(Default, TextSizeProp))/2,
 	}
 
 	// Draw line with embedded text label: "--- text --------------"
@@ -416,13 +416,13 @@ func Panel(bounds rl.Rectangle) {
 	if state == StateDisabled {
 		borderColorProp = BorderColorDisabledProp
 	}
-	borderColor := rl.Fade(rl.GetColor(int32(GetStyle(DefaultControl, borderColorProp))), guiAlpha)
+	borderColor := rl.Fade(rl.GetColor(int32(GetStyle(Default, borderColorProp))), guiAlpha)
 
 	colorProp := BackgroundColorProp
 	if state == StateDisabled {
 		colorProp = BaseColorDisabledProp
 	}
-	color := rl.Fade(rl.GetColor(int32(GetStyle(DefaultControl, colorProp))), guiAlpha)
+	color := rl.Fade(rl.GetColor(int32(GetStyle(Default, colorProp))), guiAlpha)
 
 	// Draw control
 	//--------------------------------------------------------------------
@@ -434,7 +434,7 @@ func Panel(bounds rl.Rectangle) {
 func ScrollPanel(bounds, content rl.Rectangle, scroll *rl.Vector2) rl.Rectangle {
 	state := guiState
 
-	bw := float32(GetStyle(DefaultControl, BorderWidthProp))
+	bw := float32(GetStyle(Default, BorderWidthProp))
 	side := ScrollBarSide(GetStyle(ListViewControl, ScrollBarSideProp))
 
 	scrollPos := rl.Vector2{0, 0}
@@ -589,7 +589,7 @@ func ScrollPanel(bounds, content rl.Rectangle, scroll *rl.Vector2) rl.Rectangle 
 
 	// Draw control
 	//--------------------------------------------------------------------
-	DrawRectangle(bounds, 0, rl.Blank, rl.GetColor(int32(GetStyle(DefaultControl, BackgroundColorProp)))) // Draw background
+	DrawRectangle(bounds, 0, rl.Blank, rl.GetColor(int32(GetStyle(Default, BackgroundColorProp)))) // Draw background
 
 	// Save size of the scrollbar slider
 	slider := GetStyle(ScrollBarControl, ScrollSliderSize)
@@ -621,7 +621,7 @@ func ScrollPanel(bounds, content rl.Rectangle, scroll *rl.Vector2) rl.Rectangle 
 	}
 
 	// Draw scrollbar lines depending on current state
-	DrawRectangle(bounds, int(GetStyle(DefaultControl, BorderWidthProp)), rl.Fade(rl.GetColor(int32(GetStyle(ListViewControl, Border+(ControlProperty(state)*3)))), guiAlpha), rl.Blank)
+	DrawRectangle(bounds, int(GetStyle(Default, BorderWidthProp)), rl.Fade(rl.GetColor(int32(GetStyle(ListViewControl, Border+(ControlProperty(state)*3)))), guiAlpha), rl.Blank)
 
 	// Set scrollbar slider size back to the way it was before
 	SetStyle(ScrollBarControl, ScrollSliderSize, slider)
@@ -634,22 +634,343 @@ func ScrollPanel(bounds, content rl.Rectangle, scroll *rl.Vector2) rl.Rectangle 
 	return view
 }
 
+// Label control
+func Label(bounds rl.Rectangle, text string) {
+	state := guiState
+
+	// Update control
+	//--------------------------------------------------------------------
+	// ...
+	//--------------------------------------------------------------------
+
+	// Draw control
+	//--------------------------------------------------------------------
+	colorProp := TextColorNormalProp
+	if state == StateDisabled {
+		colorProp = TextColorDisabledProp
+	}
+	DrawText(text, GetTextBounds(LabelControl, bounds), TextAlignment(GetStyle(LabelControl, TextAlignmentProp)), rl.Fade(rl.GetColor(int32(GetStyle(LabelControl, colorProp))), guiAlpha))
+	//--------------------------------------------------------------------
+}
+
+// Button control, returns true when clicked
+func Button(bounds rl.Rectangle, text string) bool {
+	state := guiState
+	pressed := false
+
+	// Update control
+	//--------------------------------------------------------------------
+	if state != StateDisabled && !guiLocked {
+		mousePoint := rl.GetMousePosition()
+
+		// Check button state
+		if rl.CheckCollisionPointRec(mousePoint, bounds) {
+			if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+				state = StatePressed
+			} else {
+				state = StateFocused
+			}
+
+			if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				pressed = true
+			}
+		}
+	}
+	//--------------------------------------------------------------------
+
+	// Draw control
+	//--------------------------------------------------------------------
+	DrawRectangle(bounds, int(GetStyle(ButtonControl, BorderWidthProp)), rl.Fade(rl.GetColor(int32(GetStyle(ButtonControl, Border+(ControlProperty(state)*3)))), guiAlpha), rl.Fade(rl.GetColor(int32(GetStyle(ButtonControl, Base+(ControlProperty(state)*3)))), guiAlpha))
+	DrawText(text, GetTextBounds(ButtonControl, bounds), TextAlignment(GetStyle(ButtonControl, TextAlignmentProp)), rl.Fade(rl.GetColor(int32(GetStyle(ButtonControl, Text+(ControlProperty(state)*3)))), guiAlpha))
+	//------------------------------------------------------------------
+
+	return pressed
+}
+
+// Label button control
+func LabelButton(bounds rl.Rectangle, text string) bool {
+	state := guiState
+	pressed := false
+
+	// NOTE: We force bounds.width to be all text
+	textWidth := rl.MeasureTextEx(guiFont, text, float32(GetStyle(Default, TextSizeProp)), float32(GetStyle(Default, TextSpacingProp))).X
+	if bounds.Width < textWidth {
+		bounds.Width = textWidth
+	}
+
+	// Update control
+	//--------------------------------------------------------------------
+	if state != StateDisabled && !guiLocked {
+		mousePoint := rl.GetMousePosition()
+
+		// Check button state
+		if rl.CheckCollisionPointRec(mousePoint, bounds) {
+			if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+				state = StatePressed
+			} else {
+				state = StateFocused
+			}
+
+			if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				pressed = true
+			}
+		}
+	}
+	//--------------------------------------------------------------------
+
+	// Draw control
+	//--------------------------------------------------------------------
+	DrawText(text, GetTextBounds(LabelControl, bounds), TextAlignment(GetStyle(LabelControl, TextAlignmentProp)), rl.Fade(rl.GetColor(int32(GetStyle(LabelControl, Text+(ControlProperty(state)*3)))), guiAlpha))
+	//--------------------------------------------------------------------
+
+	return pressed
+}
+
+// Image button control, returns true when clicked
+func ImageButton(bounds rl.Rectangle, text string, texture rl.Texture2D) bool {
+	return ImageButtonEx(bounds, text, texture, rl.Rectangle{0, 0, float32(texture.Width), float32(texture.Height)})
+}
+
+// Image button control, returns true when clicked
+func ImageButtonEx(bounds rl.Rectangle, text string, texture rl.Texture2D, texSource rl.Rectangle) bool {
+	state := guiState
+	clicked := false
+
+	// Update control
+	//--------------------------------------------------------------------
+	if state != StateDisabled && !guiLocked {
+		mousePoint := rl.GetMousePosition()
+
+		// Check button state
+		if rl.CheckCollisionPointRec(mousePoint, bounds) {
+			if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+				state = StatePressed
+			} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				clicked = true
+			} else {
+				state = StateFocused
+			}
+		}
+	}
+	//--------------------------------------------------------------------
+
+	// Draw control
+	//--------------------------------------------------------------------
+	DrawRectangle(bounds, int(GetStyle(ButtonControl, BorderWidthProp)), rl.Fade(rl.GetColor(int32(GetStyle(ButtonControl, Border+(ControlProperty(state)*3)))), guiAlpha), rl.Fade(rl.GetColor(int32(GetStyle(ButtonControl, Base+(ControlProperty(state)*3)))), guiAlpha))
+
+	DrawText(text, GetTextBounds(ButtonControl, bounds), TextAlignment(GetStyle(ButtonControl, TextAlignmentProp)), rl.Fade(rl.GetColor(int32(GetStyle(ButtonControl, Text+(ControlProperty(state)*3)))), guiAlpha))
+	if texture.ID > 0 {
+		rl.DrawTextureRec(texture, texSource, rl.Vector2{bounds.X + bounds.Width/2 - texSource.Width/2, bounds.Y + bounds.Height/2 - texSource.Height/2}, rl.Fade(rl.GetColor(int32(GetStyle(ButtonControl, Text+(ControlProperty(state)*3)))), guiAlpha))
+	}
+	//------------------------------------------------------------------
+
+	return clicked
+}
+
+// Toggle Button control, returns true when active
+func Toggle(bounds rl.Rectangle, text string, active bool) bool {
+	state := guiState
+
+	// Update control
+	//--------------------------------------------------------------------
+	if state != StateDisabled && !guiLocked {
+		mousePoint := rl.GetMousePosition()
+
+		// Check toggle button state
+		if rl.CheckCollisionPointRec(mousePoint, bounds) {
+			if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+				state = StatePressed
+			} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				state = StateNormal
+				active = !active
+			} else {
+				state = StateFocused
+			}
+		}
+	}
+	//--------------------------------------------------------------------
+
+	// Draw control
+	//--------------------------------------------------------------------
+	if state == StateNormal {
+		var borderColorProp, baseColorProp, textColorProp ControlProperty
+		if active {
+			borderColorProp = BorderColorPressedProp
+			baseColorProp = BaseColorPressedProp
+			textColorProp = TextColorPressedProp
+		} else {
+			borderColorProp = Border + ControlProperty(state)*3
+			baseColorProp = Base + ControlProperty(state)*3
+			textColorProp = Base + ControlProperty(state)*3
+		}
+		DrawRectangle(bounds, int(GetStyle(ToggleControl, BorderWidthProp)), rl.Fade(rl.GetColor(int32(GetStyle(ToggleControl, borderColorProp))), guiAlpha), rl.Fade(rl.GetColor(int32(GetStyle(ToggleControl, baseColorProp))), guiAlpha))
+		DrawText(text, GetTextBounds(ToggleControl, bounds), TextAlignment(GetStyle(ToggleControl, TextAlignmentProp)), rl.Fade(rl.GetColor(int32(GetStyle(ToggleControl, textColorProp))), guiAlpha))
+	} else {
+		DrawRectangle(bounds, int(GetStyle(ToggleControl, BorderWidthProp)), rl.Fade(rl.GetColor(int32(GetStyle(ToggleControl, Border+ControlProperty(state)*3))), guiAlpha), rl.Fade(rl.GetColor(int32(GetStyle(ToggleControl, Base+ControlProperty(state)*3))), guiAlpha))
+		DrawText(text, GetTextBounds(ToggleControl, bounds), TextAlignment(GetStyle(ToggleControl, TextAlignmentProp)), rl.Fade(rl.GetColor(int32(GetStyle(ToggleControl, Text+ControlProperty(state)*3))), guiAlpha))
+	}
+	//--------------------------------------------------------------------
+
+	return active
+}
+
+const ToggleGroupMaxElements = 32
+
+// Toggle Group control, returns toggled button index
+func ToggleGroup(bounds rl.Rectangle, text string, active int) int {
+	initBoundsX := bounds.X
+
+	// Get substrings items from text (items pointers)
+	var rows [ToggleGroupMaxElements]int
+	itemCount := 0
+	items := GuiTextSplit(text, &itemCount, rows)
+
+	prevRow := rows[0]
+
+	for i := 0; i < itemCount; i++ {
+		if prevRow != rows[i] {
+			bounds.X = initBoundsX
+			bounds.Y += bounds.Height + float32(GetStyle(ToggleControl, GroupPadding))
+			prevRow = rows[i]
+		}
+
+		if i == active {
+			Toggle(bounds, items[i], true)
+		} else if Toggle(bounds, items[i], false) {
+			active = i
+		}
+
+		bounds.X += bounds.Width + float32(GetStyle(ToggleControl, GroupPadding))
+	}
+
+	return active
+}
+
+//----------------------------------------------------------------------------------
+// Module specific Functions Definition
+//----------------------------------------------------------------------------------
+
+// Gui get text width using default font
+func GetTextWidth(text string) int {
+	var size rl.Vector2
+
+	if text != "" {
+		size = rl.MeasureTextEx(guiFont, text, float32(GetStyle(Default, TextSizeProp)), float32(GetStyle(Default, TextSpacingProp)))
+	}
+
+	// TODO: Consider text icon width here???
+
+	return int(size.X)
+}
+
+// Get text bounds considering control bounds
+func GetTextBounds(control Control, bounds rl.Rectangle) rl.Rectangle {
+	// TODO(port)
+}
+
 /*
-
-Rectangle GuiScrollPanel(Rectangle bounds, Rectangle content, Vector2 *scroll)
+Rectangle GetTextBounds(int control, Rectangle bounds)
 {
+    Rectangle textBounds = bounds;
 
+    textBounds.x = bounds.x + GuiGetStyle(control, BORDER_WIDTH);
+    textBounds.y = bounds.y + GuiGetStyle(control, BORDER_WIDTH);
+    textBounds.width = bounds.width - 2*GuiGetStyle(control, BORDER_WIDTH);
+    textBounds.height = bounds.height - 2*GuiGetStyle(control, BORDER_WIDTH);
 
-    // Draw scrollbar lines depending on current state
-    GuiDrawRectangle(bounds, GuiGetStyle(DEFAULT, BORDER_WIDTH), Fade(GetColor(GuiGetStyle(LISTVIEW, BORDER + (state*3))), guiAlpha), BLANK);
+    // Consider TEXT_PADDING properly, depends on control type and TEXT_ALIGNMENT
+    switch (control)
+    {
+        case COMBOBOX: bounds.width -= (GuiGetStyle(control, COMBO_BUTTON_WIDTH) + GuiGetStyle(control, COMBO_BUTTON_PADDING)); break;
+        case VALUEBOX: break;   // NOTE: ValueBox text value always centered, text padding applies to label
+        default:
+        {
+            if (GuiGetStyle(control, TEXT_ALIGNMENT) == GUI_TEXT_ALIGN_RIGHT) textBounds.x -= GuiGetStyle(control, TEXT_PADDING);
+            else textBounds.x += GuiGetStyle(control, TEXT_PADDING);
+        } break;
+    }
 
-    // Set scrollbar slider size back to the way it was before
-    GuiSetStyle(SCROLLBAR, SCROLL_SLIDER_SIZE, slider);
-    //--------------------------------------------------------------------
+    // TODO: Special cases (no label): COMBOBOX, DROPDOWNBOX, LISTVIEW (scrollbar?)
+    // More special cases (label side): CHECKBOX, SLIDER, VALUEBOX, SPINNER
 
-    if (scroll != NULL) *scroll = scrollPos;
+    return textBounds;
+}
+*/
 
-    return view;
+// Gui draw text using default font
+func DrawText(text string, bounds rl.Rectangle, alignment TextAlignment, tint rl.Color) {
+	// TODO(port)
+}
+
+/*
+void GuiDrawText(const char *text, Rectangle bounds, int alignment, Color tint)
+{
+    #define TEXT_VALIGN_PIXEL_OFFSET(h)  ((int)h%2)     // Vertical alignment for pixel perfect
+
+    if ((text != NULL) && (text[0] != '\0'))
+    {
+        int iconId = 0;
+        text = GetTextIcon(text, &iconId);  // Check text for icon and move cursor
+
+        // Get text position depending on alignment and iconId
+        //---------------------------------------------------------------------------------
+        #define RICON_TEXT_PADDING   4
+
+        Vector2 position = { bounds.x, bounds.y };
+
+        // NOTE: We get text size after icon been processed
+        int textWidth = GetTextWidth(text);
+        int textHeight = GuiGetStyle(DEFAULT, TEXT_SIZE);
+
+        // If text requires an icon, add size to measure
+        if (iconId >= 0)
+        {
+            textWidth += RICON_SIZE;
+
+            // WARNING: If only icon provided, text could be pointing to eof character!
+            if ((text != NULL) && (text[0] != '\0')) textWidth += RICON_TEXT_PADDING;
+        }
+
+        // Check guiTextAlign global variables
+        switch (alignment)
+        {
+            case GUI_TEXT_ALIGN_LEFT:
+            {
+                position.x = bounds.x;
+                position.y = bounds.y + bounds.height/2 - textHeight/2 + TEXT_VALIGN_PIXEL_OFFSET(bounds.height);
+            } break;
+            case GUI_TEXT_ALIGN_CENTER:
+            {
+                position.x = bounds.x + bounds.width/2 - textWidth/2;
+                position.y = bounds.y + bounds.height/2 - textHeight/2 + TEXT_VALIGN_PIXEL_OFFSET(bounds.height);
+            } break;
+            case GUI_TEXT_ALIGN_RIGHT:
+            {
+                position.x = bounds.x + bounds.width - textWidth;
+                position.y = bounds.y + bounds.height/2 - textHeight/2 + TEXT_VALIGN_PIXEL_OFFSET(bounds.height);
+            } break;
+            default: break;
+        }
+
+        // NOTE: Make sure we get pixel-perfect coordinates,
+        // In case of decimals we got weird text positioning
+        position.x = (float)((int)position.x);
+        position.y = (float)((int)position.y);
+        //---------------------------------------------------------------------------------
+
+        // Draw text (with icon if available)
+        //---------------------------------------------------------------------------------
+#if defined(RAYGUI_SUPPORT_RICONS)
+        if (iconId >= 0)
+        {
+            // NOTE: We consider icon height, probably different than text size
+            GuiDrawIcon(iconId, RAYGUI_CLITERAL(Vector2){ position.x, bounds.y + bounds.height/2 - RICON_SIZE/2 + TEXT_VALIGN_PIXEL_OFFSET(bounds.height) }, 1, tint);
+            position.x += (RICON_SIZE + RICON_TEXT_PADDING);
+        }
+#endif
+        DrawTextEx(guiFont, text, position, (float)GuiGetStyle(DEFAULT, TEXT_SIZE), (float)GuiGetStyle(DEFAULT, TEXT_SPACING), tint);
+        //---------------------------------------------------------------------------------
+    }
 }
 */
 
