@@ -1853,19 +1853,19 @@ func DrawText(text string, bounds rl.Rectangle, alignment TextAlignment, tint rl
 		switch alignment {
 		case TextAlignLeft:
 			position.X = bounds.X
-			position.Y = bounds.Y + bounds.Height/2 - float32(textHeight/2) + float32(textValignPixelOffset(bounds.Height))
+			position.Y = bounds.Y + bounds.Height/2 - float32(textHeight)/2 + float32(textValignPixelOffset(bounds.Height))
 		case TextAlignCenter:
-			position.X = bounds.X + bounds.Width/2 - float32(textWidth/2)
-			position.Y = bounds.Y + bounds.Height/2 - float32(textHeight/2) + float32(textValignPixelOffset(bounds.Height))
+			position.X = bounds.X + bounds.Width/2 - float32(textWidth)/2
+			position.Y = bounds.Y + bounds.Height/2 - float32(textHeight)/2 + float32(textValignPixelOffset(bounds.Height))
 		case TextAlignRight:
 			position.X = bounds.X + bounds.Width - float32(textWidth)
-			position.Y = bounds.Y + bounds.Height/2 - float32(textHeight/2) + float32(textValignPixelOffset(bounds.Height))
+			position.Y = bounds.Y + bounds.Height/2 - float32(textHeight)/2 + float32(textValignPixelOffset(bounds.Height))
 		}
 
 		// NOTE: Make sure we get pixel-perfect coordinates,
 		// In case of decimals we got weird text positioning
 		position.X = floor32(position.X)
-		position.X = floor32(position.Y)
+		position.Y = floor32(position.Y)
 		//---------------------------------------------------------------------------------
 
 		// Draw text (with icon if available)
@@ -1945,6 +1945,12 @@ func TextSplit(text string, count *int, textRow []int) []string {
 				break
 			}
 		}
+	}
+
+	remaining := tsBuffer[stringStart:]
+	if len(remaining) > 0 && counter < TextSplitMaxTextElements {
+		tsResult[counter] = string(remaining)
+		counter++
 	}
 
 	*count = counter
